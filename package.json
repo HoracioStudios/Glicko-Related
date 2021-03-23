@@ -1,0 +1,11 @@
+{
+  "name": "glickoupdate",
+  "version": "1.0.0",
+  "description": "Handles updating the player database through Glicko-1",
+  "main": "updater.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
