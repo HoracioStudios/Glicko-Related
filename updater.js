@@ -35,7 +35,11 @@ async function test(numTests, numMatches) {
         for (let i = 0; i < results.length; i++) {
             let res = results[i];
 
-            update.push({ result: res, time: Math.random(), opponent: rivals[i].id });
+            let t = Math.random()
+
+            update.push({ result: res, time: t, opponent: rivals[i].id });
+
+            await MongoJS.updatePlayerResults(rivals[i].id, [{ result: Math.abs(1 - res), time: t, opponent: playerID }]);
         }
 
         console.log(`Matches by player ${playerID} \n Results: \n ${update}`);
@@ -79,11 +83,11 @@ function calculateRoundResult(round) {
 }
 
 async function update() {
-    const list = await MongoJS.getPlayerIDsWithPending();
+    const list = await MongoJS.getPlayersWithPending();
 
     for (var i = 0; i < list.length; i++) {
 
-        let id = list[i];
+        let id = list[i].id;
         
         let player = await MongoJS.wipePlayerPending(id);
 
@@ -96,13 +100,19 @@ async function update() {
 
         for (let p = 0; p < player.pending.length; p++) {
             const round = player.pending[p];
+            
+            //si ha habido una partida, ambos integrantes estarán en la lista list: está garantizado
+            //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
+            let rival = list.find(p => p.id == round.opponent);
 
-            let rival = await MongoJS.findPlayer(round.opponent);
+            //console.log(rival);
 
             let roundResult = calculateRoundResult(round);
 
             values = Glicko.newPoints(player, rival, roundResult);
         }
+
+        //continue;
 
         if(DEBUGLOG)
         {
@@ -120,9 +130,9 @@ async function start()
 {
     //await importJSONGrossi();
 
-    //await test(5, 10);
+    //await test(1, 2);
 
-    //await update();
+    await update();
 
     await MongoJS.logUpdate();
     //setInterval(update, 1000);
