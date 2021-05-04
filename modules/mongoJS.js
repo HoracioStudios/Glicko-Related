@@ -37,6 +37,26 @@ async function logUpdate()
       }
 }
 
+async function logLogin(playerID)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        // busca el id exacto del jugador
+        var query = { id: playerID };
+
+        var result = await collection.updateOne(query, { $set: { lastLogin: (new Date()).toString()} }, {});
+
+      } finally {
+        await client.close();
+      }
+}
+
 //devuelve el documento del jugador con ID especificado
 async function findPlayer(playerID)
 {
@@ -59,6 +79,66 @@ async function findPlayer(playerID)
         };
 
         var player = await collection.findOne(query, options);
+
+      } finally {
+        await client.close();
+      }
+
+      return player;
+}
+
+//devuelve el documento del jugador con nick/email especificados
+async function findPlayerByLogin(query)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        // busca el id exacto del jugador
+        var options = {
+          // sort matched documents in descending order by rating
+          //sort: { rating: -1 },
+
+          // Include only the `title` and `imdb` fields in the returned document
+          //projection: { _id: 0, title: 1, imdb: 1 },
+        };
+
+        var player = await collection.findOne(query, options);
+
+      } finally {
+        await client.close();
+      }
+
+      return player;
+}
+
+//elimina el documento del jugador con id especificado
+async function deletePlayerByID(playerID)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        var query = { id: playerID };
+
+        // busca el id exacto del jugador
+        var options = {
+          // sort matched documents in descending order by rating
+          //sort: { rating: -1 },
+
+          // Include only the `title` and `imdb` fields in the returned document
+          //projection: { _id: 0, title: 1, imdb: 1 },
+        };
+
+        await collection.deleteOne(query);
 
       } finally {
         await client.close();
@@ -283,6 +363,36 @@ async function isNickAvailable(playerNick)
       return (player === null);
 }
 
+//verifica si un email determinado ya está cogido
+async function isEmailAvailable(playerEmail)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        // busca el id exacto del jugador
+        var query = { email: playerEmail };
+        var options = {
+          // sort matched documents in descending order by rating
+          //sort: { rating: -1 },
+
+          // Include only the `title` and `imdb` fields in the returned document
+          //projection: { _id: 0, title: 1, imdb: 1 },
+        };
+
+        var player = await collection.findOne(query, options);
+
+      } finally {
+        await client.close();
+      }
+
+      return (player === null);
+}
+
 //devuelve un array con todos los jugadores, útil para actualizar el sistema de matchmaking
 async function getAllPlayers()
 {
@@ -439,7 +549,8 @@ async function getUserCount()
 
       var count = await collection.findOne({}, {});
 
-      count = count.playerCount;
+      if(count === null) count = 0;
+      else count = count.playerCount;
 
       } finally {
         await client.close();
@@ -499,7 +610,7 @@ async function updatePlayerResults(playerID, gameResults)
         };
 
         //contadores de ganar/perder/empate
-        var update = { $push: { pending: { $each: gameResults } }, $inc : { wins: win, losses: loss, draws: draw } };
+        var update = { $push: { pending: { $each: gameResults } }, $inc : { wins: win, losses: loss, draws: draw }, $set: { lastGame: (new Date()).toString() } };
         //var update = { $push: { pending: { $each: gameResults } }, $add? };
 
         var result = await collection.updateOne(filter, update, options);
@@ -588,8 +699,8 @@ async function test()
 */
 
 module.exports = {
-  logUpdate, findPlayer, findPlayersInRange, wipePlayerData, wipePlayerPending,
-  updatePlayerRating, updatePlayerResults, isNickAvailable, addPlayer, getAllPlayerIDs,
+  logUpdate, logLogin, findPlayer, findPlayerByLogin, findPlayersInRange, wipePlayerData, wipePlayerPending, deletePlayerByID,
+  updatePlayerRating, updatePlayerResults, isNickAvailable, isEmailAvailable, addPlayer, getAllPlayerIDs,
   getAllPlayers, getPlayerIDsWithHistory, getPlayerIDsWithPending, getPlayersWithHistory,
   getPlayersWithPending, getUserCount
 };

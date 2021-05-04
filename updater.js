@@ -3,6 +3,8 @@ const MongoJS = require('./modules/mongoJS.js');
 
 const DEBUGLOG = true;
 
+const defaultParameters = {rating: 1500, RD: 350};
+
 function sleep(ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
@@ -105,6 +107,8 @@ async function update() {
             //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
             let rival = list.find(p => p.id == round.opponent);
 
+            if(rival === undefined) rival = defaultParameters;
+
             //console.log(rival);
 
             let roundResult = calculateRoundResult(round);
@@ -132,10 +136,10 @@ async function start()
 
     //await test(1, 2);
 
-    await update();
+    //await update();
 
-    await MongoJS.logUpdate();
-    //setInterval(update, 1000);
+    //await MongoJS.logUpdate();
+    setInterval(update, 1000);
 }
 
 start();
