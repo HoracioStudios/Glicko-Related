@@ -84,6 +84,45 @@ function calculateRoundResult(round) {
     return ret;
 }
 
+function calculateNewValues(list, player)
+{
+    var oldRD = player.RD;
+
+    player.RD = Glicko.newRD(player.RD, currentT - player.lastT);
+
+    var rSum = 0;
+    var dSum = 0;
+
+    for (let p = 0; p < player.pending.length; p++) {
+        const round = player.pending[p];
+        
+        //si ha habido una partida, ambos integrantes estarán en la lista list: está garantizado
+        //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
+        let rival = list.find(p => p.id == round.opponent);
+
+        if(rival === undefined) rival = defaultParameters;
+
+        //console.log(rival);
+
+        let roundResult = calculateRoundResult(round);
+
+        rSum += Glicko.calculateRSum(player, rival, roundResult);
+        dSum += Glicko.calculateDSum(player, rival);
+    }
+
+    var values =  Glicko.newPoints(player, rSum, dSum);    
+
+    if(DEBUGLOG)
+    {
+        console.log(" Old Points: ", player.rating);
+        console.log(" Old Deviation: ", oldRD);
+        console.log(" New Points: ", values[0]);
+        console.log(" New Deviation: ", values[1]);
+    }
+
+    return { rating: values[0], RD: values[1], lastT: currentT };
+}
+
 async function update() {
     const list = await MongoJS.getPlayersWithPending();
 
@@ -93,6 +132,8 @@ async function update() {
         
         let player = await MongoJS.wipePlayerPending(id);
 
+        if(player.lastT === undefined) player.lastT = 0;
+
         if(DEBUGLOG) console.log(`\nUpdating player ${id}`);
         
         if(DEBUGLOG)
@@ -100,35 +141,17 @@ async function update() {
             console.log(player.pending);
         }
 
-        for (let p = 0; p < player.pending.length; p++) {
-            const round = player.pending[p];
-            
-            //si ha habido una partida, ambos integrantes estarán en la lista list: está garantizado
-            //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
-            let rival = list.find(p => p.id == round.opponent);
+        var updateValues = calculateNewValues(list, player);
 
-            if(rival === undefined) rival = defaultParameters;
-
-            //console.log(rival);
-
-            let roundResult = calculateRoundResult(round);
-
-            values = Glicko.newPoints(player, rival, roundResult);
-        }
-
-        //continue;
-
-        if(DEBUGLOG)
-        {
-            console.log(" Old Points: ", player.rating);
-            console.log(" Old Deviation: ", player.RD);
-            console.log(" New Points: ", values[0]);
-            console.log(" New Deviation: ", values[1]);
-        }
-
-        await MongoJS.updatePlayerRating(id, { rating: values[0], RD: values[1] } );
+        await MongoJS.updatePlayerRating(id, updateValues);
     }
+
+
+    await MongoJS.logUpdate();
+    currentT++;
 }
+
+var currentT = 0;
 
 async function start()
 {
@@ -139,7 +162,14 @@ async function start()
     //await update();
 
     //await MongoJS.logUpdate();
+
+    currentT = await MongoJS.lastT();
+
+    if(currentT === undefined) currentT = 0;
+
     setInterval(update, 1000);
+
+    //update();
 }
 
 start();

@@ -15,7 +15,7 @@ const DEBUGLOG = false;
 //FUNCIONES INDEPENDIENTES DEL JUEGO: estas funciones son 100% independientes del juego, se puede aplicar a otros juegos
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-async function logUpdate()
+async function lastT()
 {
     let client = new MongoClient(uri);
 
@@ -30,7 +30,31 @@ async function logUpdate()
             upsert: true
         };
 
-        var player = await collection.updateOne({}, { $push: { dateLog: (new Date()).toString() } }, options);
+        var player = await collection.findOne({}, {});
+
+      } finally {
+        await client.close();
+      }
+
+      return player.lastT;
+}
+
+async function logUpdate(currentT)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(dataCollection);
+
+        // busca el id exacto del jugador
+        var options = {
+            upsert: true
+        };
+
+        var player = await collection.updateOne({}, { $push: { dateLog: (new Date()).toString() }, $inc: { lastT: 1 }}, options);
 
       } finally {
         await client.close();
@@ -76,6 +100,31 @@ async function findPlayer(playerID)
 
           // Include only the `title` and `imdb` fields in the returned document
           //projection: { _id: 0, title: 1, imdb: 1 },
+        };
+
+        var player = await collection.findOne(query, options);
+
+      } finally {
+        await client.close();
+      }
+
+      return player;
+}
+
+//devuelve el documento del jugador con ID especificado
+async function findPlayerSafe(query)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        // busca el id exacto del jugador
+        var options = {
+          projection: { _id: 0, password: 0, salt: 0, email: 0, history: 0, pending: 0, creation: 0, lastLogin: 0 }
         };
 
         var player = await collection.findOne(query, options);
@@ -143,8 +192,33 @@ async function deletePlayerByID(playerID)
       } finally {
         await client.close();
       }
+}
 
-      return player;
+//elimina el documento del jugador con credenciales especificados
+async function deletePlayer(query)
+{
+    let client = new MongoClient(uri);
+
+    try {
+        await client.connect();
+
+        var database = client.db(databaseName);
+        var collection = database.collection(playerCollection);
+
+        // busca el id exacto del jugador
+        var options = {
+          // sort matched documents in descending order by rating
+          //sort: { rating: -1 },
+
+          // Include only the `title` and `imdb` fields in the returned document
+          //projection: { _id: 0, title: 1, imdb: 1 },
+        };
+
+        await collection.deleteOne(query);
+
+      } finally {
+        await client.close();
+      }
 }
 
 //le pasas el mínimo y máximo del rango (normalmente, puntuación - x y puntuación + x), AMBOS INCLUSIVOS
@@ -699,7 +773,7 @@ async function test()
 */
 
 module.exports = {
-  logUpdate, logLogin, findPlayer, findPlayerByLogin, findPlayersInRange, wipePlayerData, wipePlayerPending, deletePlayerByID,
+  lastT, logUpdate, logLogin, findPlayer, findPlayerSafe, findPlayerByLogin, findPlayersInRange, wipePlayerData, wipePlayerPending, deletePlayerByID, deletePlayer,
   updatePlayerRating, updatePlayerResults, isNickAvailable, isEmailAvailable, addPlayer, getAllPlayerIDs,
   getAllPlayers, getPlayerIDsWithHistory, getPlayerIDsWithPending, getPlayersWithHistory,
   getPlayersWithPending, getUserCount

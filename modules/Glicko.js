@@ -1,16 +1,20 @@
 
 const DEBUGLOG = false;
 
-function Cvalue(t)
+const maxRatingPeriods = 100;
+const minRD = 20;
+const q = 0.0057565;
+
+function Cvalue()
 {
-    return Math.sqrt((350**2 - 50**2)/t)
+    return Math.sqrt((350**2 - 50**2)/maxRatingPeriods);
 }
 
-function newRD(Rdold, c, t){
-    val = Math.min(Math.sqrt(RDold**2 + c**2*t), 350)
-    if (val < 20) 
-        val = 20
-    return val
+function newRD(RDold, t){
+    val = Math.min(Math.sqrt(RDold**2 + Cvalue()**2*t), 350);
+    if (val < minRD) 
+        val = minRD;
+    return val;
 }
 
 function getPlayersForMatch(playerID, data){
@@ -32,7 +36,6 @@ function getPlayersForMatch(playerID, data){
 }
 
 function g(RD){
-    q = 0.0057565;
     return 1/(Math.sqrt((1 + 3*(q**2)*(RD**2))/Math.PI**2));
 }
 
@@ -41,11 +44,7 @@ function E(rivalD, playerPoints, rivalPoints){
     return 1/(1+10**elevateG);
 }
 
-function calculateD(player, rival){
-    q = 0.0057565;
-
-    let sum = g(rival.RD)**2 * E(rival.RD, player.rating, rival.rating) * (1 - E(rival.RD, player.rating, rival.rating));
-
+function calculateD(sum){
     return 1/(q**2 * sum);
 }
 
@@ -53,15 +52,21 @@ function getRD(RD, d){
     return Math.sqrt(1/((1/(RD**2))+(1/(d))));
 }
 
-function newPoints(player, rival, result){
-    q = 0.0057565;
+function calculateRSum(player, rival, result)
+{
+    return g(rival.RD) * (result - E(rival.RD, player.rating, rival.rating));
+}
 
-    let sum = g(rival.RD) * (result - E(rival.RD, player.rating, rival.rating));
+function calculateDSum(player, rival)
+{
+    return g(rival.RD)**2 * E(rival.RD, player.rating, rival.rating) * (1 - E(rival.RD, player.rating, rival.rating));
+}
 
-    let d = calculateD(player, rival);
-    let newRD = getRD(player.RD, d);
+function newPoints(player, rSum, dSum)
+{
+    let d = calculateD(dSum);
 
-    var add = ((q/(1/(newRD**2) + 1/d)) * sum);
+    var add = ((q/(1/(player.RD**2) + 1/d)) * rSum);
     //Actualizar valores del jugador
     var poi = (player.rating + add);
 
@@ -75,7 +80,9 @@ function newPoints(player, rival, result){
         console.log("Tras sumar: ", poi, " typeof: ", typeof(poi));
     }
 
-    return [poi, newRD];
+    let nuRD = getRD(player.RD, d);
+
+    return [poi, nuRD];
 }
 
 function prediction(RD1, RD2, r1, r2){
@@ -115,6 +122,6 @@ function getRandom(arr, n) {
     return result;
 }
 
-module.exports = { getPlayersForMatch, getRandom, generateGames, newPoints };
+module.exports = { getPlayersForMatch, getRandom, generateGames, newPoints, calculateDSum, calculateRSum, newRD };
 
 //export { getPlayersForMatch, getRandom, generateGames, newPoints };
