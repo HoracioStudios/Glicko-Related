@@ -1,0 +1,3 @@
+[submodule "MongoJS"]
+	path = MongoJS
+	url = https://github.com/HoracioStudios/MongoJS

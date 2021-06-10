@@ -1,9 +1,12 @@
 const Glicko = require('./modules/Glicko.js');
-const MongoJS = require('./modules/mongoJS.js');
+const MongoJS = require('./MongoJS/mongoJS.js');
 
 const DEBUGLOG = true;
 
 const defaultParameters = {rating: 1500, RD: 350};
+
+const waitTimeMS = 900000; //15 minutos
+//const waitTimeMS = 3.6e+6; //1 hora
 
 function sleep(ms) {
     return new Promise((resolve) => {
@@ -11,7 +14,8 @@ function sleep(ms) {
     });
   } 
 
-async function test(numTests, numMatches) {
+async function test(numTests, numMatches)
+{
 
     let count = await MongoJS.getUserCount();
 
@@ -74,12 +78,12 @@ async function importJSONGrossi() {
     }
 }
 
+const W = 0.75;
+
 function calculateRoundResult(round) {
     let ret = 0;
-
-    //el resultado de la ronda cuenta como 0.75 de la puntuación
-    //el tiempo de la ronda cuenta como 0.25, restándoselo al resultado con tal de que en victorias (1) valga más un tiempo menor, y viceversa
-    ret = (0.75 * round.result) + (0.25 * Math.abs(round.result - round.time));
+    
+    ret = (W * round.result) + ((1 - W) * Math.abs(round.result - round.time));
 
     return ret;
 }
@@ -94,23 +98,30 @@ function calculateNewValues(list, player)
     var dSum = 0;
 
     for (let p = 0; p < player.pending.length; p++) {
-        const round = player.pending[p];
+        var game = player.pending[p];
+
+        var opponent = game.rivalID;
+
+        game.rounds.forEach(round =>
+            {
         
-        //si ha habido una partida, ambos integrantes estarán en la lista list: está garantizado
-        //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
-        let rival = list.find(p => p.id == round.opponent);
+            //si ha habido una partida, ambos integrantes estarán en la lista list: está garantizado
+            //empleamos la lista list porque tiene las puntuaciones originales, de forma que el cálculo de puntuaciones se realice somo si todas las partidas se hubieran realizado en el mismo momento
+            let rival = list.find(p => p.id == opponent);
+    
+            if(rival === undefined) rival = defaultParameters;
+    
+            //console.log(rival);
+    
+            let roundResult = calculateRoundResult(round);
+    
+            rSum += Glicko.calculateRSum(player, rival, roundResult);
+            dSum += Glicko.calculateDSum(player, rival);
 
-        if(rival === undefined) rival = defaultParameters;
-
-        //console.log(rival);
-
-        let roundResult = calculateRoundResult(round);
-
-        rSum += Glicko.calculateRSum(player, rival, roundResult);
-        dSum += Glicko.calculateDSum(player, rival);
+        });
     }
 
-    var values =  Glicko.newPoints(player, rSum, dSum);    
+    var values =  Glicko.newPoints(player, rSum, dSum);
 
     if(DEBUGLOG)
     {
@@ -167,9 +178,25 @@ async function start()
 
     if(currentT === undefined) currentT = 0;
 
-    setInterval(update, 1000);
-
+    setInterval(update, waitTimeMS);
     //update();
+}
+
+async function startTest()
+{
+    //await importJSONGrossi();
+
+    //await test(1, 2);
+
+    //await update();
+
+    //await MongoJS.logUpdate();
+
+    currentT = await MongoJS.lastT();
+
+    if(currentT === undefined) currentT = 0;
+
+    update();
 }
 
 start();

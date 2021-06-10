@@ -640,7 +640,7 @@ async function getUserCount()
 const using_round_results = false;
 
 //añade el array gameResults al array pending del jugador con id playerID, esta función depende del 
-async function updatePlayerResults(playerID, gameResults)
+async function updatePlayerResults(playerID, gameResult)
 {
     let client = new MongoClient(uri);
 
@@ -650,27 +650,17 @@ async function updatePlayerResults(playerID, gameResults)
         var win, loss, draw;
         win = loss = draw = 0;
 
-        if(!using_round_results) {
-            let total = 0, count = 0;
+		let total = 0, count = 0;
 
-            gameResults.forEach(round => {
-                total += round.result;
-                count++;
-            });
-            
-            let avg = total / count;
-            if(avg > 0.5) win++;
-            else if (avg < 0.5) loss++;
-            else draw++;
-
-        } else {
-
-            gameResults.forEach(round => {
-                if(round.result == 1) win++;
-                else if (round.result == 0) loss++;
-                else draw++;
-            });
-        }
+		gameResult.rounds.forEach(round => {
+			total += round.result;
+			count++;
+		});
+		
+		let avg = total / count;
+		if(avg > 0.5) win++;
+		else if (avg < 0.5) loss++;
+		else draw++;		   
 
         var database = client.db(databaseName);
         var collection = database.collection(playerCollection);
@@ -684,7 +674,7 @@ async function updatePlayerResults(playerID, gameResults)
         };
 
         //contadores de ganar/perder/empate
-        var update = { $push: { pending: { $each: gameResults } }, $inc : { wins: win, losses: loss, draws: draw }, $set: { lastGame: (new Date()).toString() } };
+        var update = { $push: { pending: gameResult }, $inc : { wins: win, losses: loss, draws: draw }, $set: { lastGame: (new Date()).toString() } };
         //var update = { $push: { pending: { $each: gameResults } }, $add? };
 
         var result = await collection.updateOne(filter, update, options);
