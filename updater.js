@@ -8,6 +8,18 @@ const defaultParameters = {rating: 1500, RD: 350};
 const waitTimeMS = 900000; //15 minutos
 //const waitTimeMS = 3.6e+6; //1 hora
 
+const URI_PATH = './sensitive/uri.uri';
+var fs = require('fs');
+
+//URI de sensitive
+try {
+    var uri = fs.readFileSync(URI_PATH, 'utf8');
+    MongoJS.init(uri);
+  } catch (error)
+  {    
+    console.log("\nERROR: No se ha encontrado el archivo \'" + URI_PATH + "\', se empleará la conexión por defecto a la base de datos\n");
+  }
+
 function sleep(ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
@@ -199,4 +211,4 @@ async function startTest()
     update();
 }
 
-start();
+startTest();
