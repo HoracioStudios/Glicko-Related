@@ -153,7 +153,7 @@ async function update() {
 
         let id = list[i].id;
         
-        let player = await MongoJS.wipePlayerPending(id);
+        let player = await MongoJS.wipePlayerPending(id, currentT);
 
         if(player.lastT === undefined) player.lastT = 0;
 
