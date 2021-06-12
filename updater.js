@@ -155,7 +155,7 @@ async function update() {
         
         let player = await MongoJS.wipePlayerPending(id, currentT);
 
-        if(player.lastT === undefined) player.lastT = 0;
+        if(player.lastT === undefined || player.lastT < 0) player.lastT = currentT;
 
         if(DEBUGLOG) console.log(`\nUpdating player ${id}`);
         
@@ -211,4 +211,4 @@ async function startTest()
     update();
 }
 
-startTest();
+start();
