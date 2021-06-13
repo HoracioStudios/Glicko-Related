@@ -90,16 +90,6 @@ async function importJSONGrossi() {
     }
 }
 
-const W = 0.75;
-
-function calculateRoundResult(round) {
-    let ret = 0;
-    
-    ret = (W * round.result) + ((1 - W) * Math.abs(round.result - round.time));
-
-    return ret;
-}
-
 function calculateNewValues(list, player)
 {
     var oldRD = player.RD;
@@ -123,11 +113,7 @@ function calculateNewValues(list, player)
     
             if(rival === undefined) rival = defaultParameters;
     
-            //console.log(rival);
-    
-            let roundResult = calculateRoundResult(round);
-    
-            rSum += Glicko.calculateRSum(player, rival, roundResult);
+            rSum += Glicko.calculateRSum(player, rival, round.result);
             dSum += Glicko.calculateDSum(player, rival);
 
         });
