@@ -1,4 +1,4 @@
-# Glicko-Related
+# Ranking-Update 
 ---
 
 Servidor de actualización de puntuaciones y desviaciones de los usuarios que se encuentren en la base de datos gestionada por el [servidor de _matchmaking_] creado por HoracioStudios. Este servidor de actualización usa como base el sistema de clasificación Glicko.
