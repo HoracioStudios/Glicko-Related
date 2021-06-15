@@ -3,91 +3,21 @@ const MongoJS = require('./MongoJS/mongoJS.js');
 
 const DEBUGLOG = true;
 
-const defaultParameters = {rating: 1500, RD: 350};
+const defaultParameters = Glicko.defaultParameters;
 
-const waitTimeMS = 900000; //15 minutos
-//const waitTimeMS = 3.6e+6; //1 hora
+const waitTimeMS = 1000 * 60 * 60; //1 hora
 
 const URI_PATH = './sensitive/uri.uri';
 var fs = require('fs');
 
 //URI de sensitive
-try {
+try
+{
     var uri = fs.readFileSync(URI_PATH, 'utf8');
     MongoJS.init(uri);
-  } catch (error)
-  {    
+} catch (error)
+{    
     console.log("\nERROR: No se ha encontrado el archivo \'" + URI_PATH + "\', se empleará la conexión por defecto a la base de datos\n");
-  }
-
-function sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  } 
-
-async function test(numTests, numMatches)
-{
-
-    let count = await MongoJS.getUserCount();
-
-    for (let i = 0; i < numTests; i++)
-    {
-        console.log("------------------");
-    
-        let playerID = Math.floor(Math.random() * Math.floor(count));
-
-        let player = await MongoJS.findPlayer(playerID);
-
-        //console.log("OriginalPoints: ", player.rating);
-        //console.log("OriginalDeviation: ", player.RD);
-        
-        var totalRivals = await MongoJS.findPlayersInRange(player.rating - (2 * player.RD), player.rating + (2 * player.RD));//Glicko.getPlayersForMatch(playerID, dataFile);
-        
-        var rivals = Glicko.getRandom(totalRivals, numMatches);
-        
-        var results = Glicko.generateGames(player, rivals);
-
-        var update = []
-
-        for (let i = 0; i < results.length; i++) {
-            let res = results[i];
-
-            let t = Math.random()
-
-            update.push({ result: res, time: t, opponent: rivals[i].id });
-
-            await MongoJS.updatePlayerResults(rivals[i].id, [{ result: Math.abs(1 - res), time: t, opponent: playerID }]);
-        }
-
-        console.log(`Matches by player ${playerID} \n Results: \n ${update}`);
-
-        
-        //values = Glicko.newPoints(player, rivals, results);
-        //console.log("New Points: ", values[0]);
-        //console.log("New Deviation: ", values[1]);
-
-        await MongoJS.updatePlayerResults(playerID, update);
-        
-        console.log("------------------\n");
-    }
-}
-
-async function importJSONGrossi() {
-    
-
-    let dataFile = require('./players_file.json');
-    
-    var aux = Object.keys(dataFile);
-
-    for (const key in aux) {
-        let player = dataFile[key];
-    
-        let rat = player["points"];
-        let dev = player["deviation"];
-    
-        await MongoJS.addPlayer(player["id"], {rating: rat, RD: dev}, {nick: "", email: "", password: "", salt: ""});
-    }
 }
 
 function calculateNewValues(list, player)
@@ -164,37 +94,12 @@ var currentT = 0;
 
 async function start()
 {
-    //await importJSONGrossi();
-
-    //await test(1, 2);
-
-    //await update();
-
-    //await MongoJS.logUpdate();
 
     currentT = await MongoJS.lastT();
 
     if(currentT === undefined) currentT = 0;
 
     setInterval(update, waitTimeMS);
-    //update();
-}
-
-async function startTest()
-{
-    //await importJSONGrossi();
-
-    //await test(1, 2);
-
-    //await update();
-
-    //await MongoJS.logUpdate();
-
-    currentT = await MongoJS.lastT();
-
-    if(currentT === undefined) currentT = 0;
-
-    update();
 }
 
 start();

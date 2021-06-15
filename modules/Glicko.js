@@ -5,13 +5,15 @@ const maxRatingPeriods = 100;
 const minRD = 20;
 const q = 0.0057565;
 
+const defaultParameters = { rating: 1500, RD: 350 };
+
 function Cvalue()
 {
-    return Math.sqrt((350**2 - 50**2)/maxRatingPeriods);
+    return Math.sqrt((defaultParameters.RD**2 - 50**2)/maxRatingPeriods);
 }
 
 function newRD(RDold, t){
-    val = Math.min(Math.sqrt(RDold**2 + Cvalue()**2*t), 350);
+    val = Math.min(Math.sqrt(RDold**2 + Cvalue()**2*t), defaultParameters.RD);
     if (val < minRD) 
         val = minRD;
     return val;
@@ -122,6 +124,6 @@ function getRandom(arr, n) {
     return result;
 }
 
-module.exports = { getPlayersForMatch, getRandom, generateGames, newPoints, calculateDSum, calculateRSum, newRD };
+module.exports = { getPlayersForMatch, getRandom, generateGames, newPoints, calculateDSum, calculateRSum, newRD, defaultParameters };
 
 //export { getPlayersForMatch, getRandom, generateGames, newPoints };
