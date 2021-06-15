@@ -10,7 +10,7 @@ const waitTimeMS = 1000 * 60 * 60; //1 hora
 const URI_PATH = './sensitive/uri.uri';
 var fs = require('fs');
 
-//URI de sensitive
+//Si no existe el archivo se emplea la uri local por defecto, pero se puede especificar una
 try
 {
     var uri = fs.readFileSync(URI_PATH, 'utf8');
@@ -20,6 +20,7 @@ try
     console.log("\nERROR: No se ha encontrado el archivo \'" + URI_PATH + "\', se empleará la conexión por defecto a la base de datos\n");
 }
 
+//función que hace un cálculo superficial para después procesarlo con Glicko
 function calculateNewValues(list, player)
 {
     var oldRD = player.RD;
@@ -62,6 +63,7 @@ function calculateNewValues(list, player)
     return { rating: values[0], RD: values[1], lastT: currentT };
 }
 
+//función que pide todos los jugaadores pendientes de actualización y los procesa uno a uno
 async function update() {
     const list = await MongoJS.getPlayersWithPending();
 
